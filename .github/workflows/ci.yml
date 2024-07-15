@@ -67,7 +67,6 @@ jobs:
           sudo apt update
           sudo apt install gh -y
       - name: 既存のプルリクエストをチェック
-        id: check_pr
         run: |
           gh pr list --head ${{ github.head_ref }} \
             --json number --jq '.[0].number' > pr_number.txt
