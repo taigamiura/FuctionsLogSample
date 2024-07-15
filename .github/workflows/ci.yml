@@ -36,10 +36,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install Dependencies
-        run: npm install
-        working-directory: ../../functions/functions
-
       - name: Lint Code Base
         uses: github/super-linter@v4
         env:
