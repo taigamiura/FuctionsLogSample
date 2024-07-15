@@ -4,6 +4,11 @@ const LogHandler = require('./logHandler')
 exports.helloWorld = onRequest({
   region: 'asia-northeast1' // 東京リージョンを指定
 }, async (request, response) => {
+  sampleFunc(request, response)
+})
+
+const sampleFunc = (request, response)=> {
+
   const logHandler = new LogHandler(request)
   let statusCode = 200
   let message
@@ -28,4 +33,5 @@ exports.helloWorld = onRequest({
     logHandler.log(statusCode, message)
     response.status(statusCode).send(message)
   }
-})
+
+}
