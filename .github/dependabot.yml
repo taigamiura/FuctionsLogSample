@@ -1,0 +1,9 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    allow:
+      - dependency-type: "direct"  # 直接依存関係のみを許可
+    versioning-strategy: "increase"  # 脆弱性が修正されたバージョンにのみアップデート

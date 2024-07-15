@@ -1,0 +1,28 @@
+name: njsscan-schedule
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # 毎日午前0時に実行
+
+jobs:
+  njsscan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # actions/checkoutがコードをフェッチするため
+      security-events: write # github/codeql-action/upload-sarifがSARIF結果をアップロードするため
+      actions: read # プライベートリポジトリの場合のみ、github/codeql-action/upload-sarifがアクションの実行状況を取得するため
+    name: njsscan code scanning
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v4
+
+      - name: nodejsscan scan
+        id: njsscan
+        uses: ajinabraham/njsscan-action@7237412fdd36af517e2745077cedbf9d6900d711
+        with:
+          args: '. --sarif --output results.sarif || true'
+
+      - name: Upload njsscan report
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
