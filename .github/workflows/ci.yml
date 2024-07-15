@@ -1,4 +1,3 @@
----
 name: ci
 
 on:
@@ -37,11 +36,8 @@ jobs:
   njsscan:
     runs-on: ubuntu-latest
     permissions:
-      # actions/checkoutがコードをフェッチするため
       contents: read
-      # github/codeql-action/upload-sarifがSARIF結果をアップロードするため
       security-events: write
-      # プライベートリポジトリの場合のみ、github/codeql-action/upload-sarifがアクションの実行状況を取得するため
       actions: read
     steps:
       - name: Checkout the code
