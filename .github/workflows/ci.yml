@@ -39,32 +39,8 @@ jobs:
         with:
           sarif_file: results.sarif
 
-  check_pr:
-    runs-on: ubuntu-latest
-    steps:
-      - name: コードをチェックアウト
-        uses: actions/checkout@v4
-      - name: GitHub CLIをインストール
-        run: |
-          sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
-          sudo apt-add-repository https://cli.github.com/packages
-          sudo apt update
-          sudo apt install gh -y
-      - name: 既存のプルリクエストをチェック
-        env:
-          HEAD_REF: ${{ github.head_ref }}
-        run: |
-          gh pr list --head "${HEAD_REF}" --json number --jq .[0].number > pr_number.txt
-          if [ -s pr_number.txt ]; then
-            echo "PR_EXISTS=true" >> $GITHUB_ENV
-            echo "pr_exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "PR_EXISTS=false" >> $GITHUB_ENV
-            echo "pr_exists=false" >> $GITHUB_OUTPUT
-          fi
-
   create-pull-request:
-    needs: [njsscan, check_pr]
+    needs: [njsscan]
     runs-on: ubuntu-latest
     steps:
       - name: コードをチェックアウト
