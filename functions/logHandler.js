@@ -1,4 +1,4 @@
-const logger = require("firebase-functions/logger")
+const logger = require('firebase-functions/logger')
 
 class LogHandler {
   /**
@@ -6,7 +6,7 @@ class LogHandler {
    * @param {object} request - HTTPリクエストオブジェクト
    * @param {object} [options={}] - オプション設定
    */
-  constructor(request, options = {}) {
+  constructor (request, options = {}) {
     this.request = request
     this.params = request.query
     this.body = request.body
@@ -23,7 +23,7 @@ class LogHandler {
    * @returns {object} - 構築されたログデータ
    * @private
    */
-  _struct(statusCode = 200) {
+  _struct (statusCode = 200) {
     return {
       method: this.request.method, // HTTPメソッド（GET, POSTなど）
       url: this.request.url, // リクエストURL
