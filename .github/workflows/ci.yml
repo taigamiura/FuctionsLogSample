@@ -1,0 +1,57 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - feature/*
+      - fix/*
+      - refactor/*
+  pull_request:
+    branches:
+      - main
+      - feature/*
+      - fix/*
+      - refactor/*
+  workflow_dispatch: # 手動トリガー用
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  run-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Full git history is needed to get a proper list of changed files within `super-linter`
+          fetch-depth: 0
+
+      - name: Lint Code Base
+        uses: github/super-linter@v4
+        env:
+          VALIDATE_ALL_CODEBASE: false
+          DEFAULT_BRANCH: "main"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  njsscan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # actions/checkoutがコードをフェッチするため
+      security-events: write # github/codeql-action/upload-sarifがSARIF結果をアップロードするため
+      actions: read # プライベートリポジトリの場合のみ、github/codeql-action/upload-sarifがアクションの実行状況を取得するため
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v4
+
+      - name: nodejsscan scan
+        id: njsscan
+        uses: ajinabraham/njsscan-action@7237412fdd36af517e2745077cedbf9d6900d711
+        with:
+          args: '. --sarif --output results.sarif || true'
+
+      - name: Upload njsscan report
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
