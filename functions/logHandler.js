@@ -43,7 +43,7 @@ class LogHandler {
    * @param {string} message - ログメッセージ
    * @param {Error} [error] - 詳細ログのためのエラーオブジェクト（必要に応じて）
    */
-  log(statusCode, message, error = null) {
+  log (statusCode, message, error = null) {
     const logData = this._struct(statusCode) // ログデータを構築
 
     if (error) {
