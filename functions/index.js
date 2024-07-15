@@ -4,14 +4,12 @@ const LogHandler = require('./logHandler')
 exports.helloWorld = onRequest({
   region: 'asia-northeast1' // 東京リージョンを指定
 }, async (request, response) => {
-
   const logHandler = new LogHandler(request)
   let statusCode = 200
   let message
 
   try {
     const type = request.query.type
-
     switch (type) {
       case 'warn':
         statusCode = 400
@@ -20,7 +18,7 @@ exports.helloWorld = onRequest({
         statusCode = 500
         break
     }
-    if (400 <= statusCode && statusCode <= 500) {
+    if (statusCode >= 400 && statusCode <= 500) {
       throw Error('Internal Server Error')
     }
     message = 'Request handled successfully'
@@ -30,5 +28,4 @@ exports.helloWorld = onRequest({
     logHandler.log(statusCode, message)
     response.status(statusCode).send(message)
   }
-
 })
