@@ -1,93 +1,97 @@
-name: ci
+---
+  name: ci
 
-on:
-  push:
-    branches:
-      - feature/*
-      - fix/*
-      - refactor/*
-  pull_request:
-    branches:
-      - main
-      - feature/*
-      - fix/*
-      - refactor/*
-  workflow_dispatch: # 手動トリガー用
+  on:
+    push:
+      branches:
+        - feature/*
+        - fix/*
+        - refactor/*
+    pull_request:
+      branches:
+        - main
+        - feature/*
+        - fix/*
+        - refactor/*
+    workflow_dispatch: # 手動トリガー用
 
-concurrency:
-  group: ${{ github.workflow }}
-  cancel-in-progress: true
+  concurrency:
+    group: ${{ github.workflow }}
+    cancel-in-progress: true
 
-jobs:
-  run-lint:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          # Full git history is needed to get a proper list of changed files within `super-linter`
-          fetch-depth: 0
+  jobs:
+    run-lint:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+          with:
+            # Full git history is needed to get a proper list of changed files within `super-linter`
+            fetch-depth: 0
+        - name: Lint Code Base
+          uses: github/super-linter@v4
+          env:
+            VALIDATE_ALL_CODEBASE: false
+            DEFAULT_BRANCH: "main"
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Lint Code Base
-        uses: github/super-linter@v4
-        env:
-          VALIDATE_ALL_CODEBASE: false
-          DEFAULT_BRANCH: "main"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    njsscan:
+      runs-on: ubuntu-latest
+      permissions:
+        contents: read # actions/checkoutがコードをフェッチするため
+        security-events: write # github/codeql-action/upload-sarifがSARIF結果をアップロードするため
+        actions: read # プライベートリポジトリの場合のみ、github/codeql-action/upload-sarifがアクションの実行状況を取得するため
+      steps:
+        - name: Checkout the code
+          uses: actions/checkout@v4
+        - name: nodejsscan scan
+          id: njsscan
+          uses: ajinabraham/njsscan-action@7237412fdd36af517e2745077cedbf9d6900d711
+          with:
+            args: '. --sarif --output results.sarif || true'
+        - name: Upload njsscan report
+          uses: github/codeql-action/upload-sarif@v3
+          with:
+            sarif_file: results.sarif
 
-  njsscan:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read # actions/checkoutがコードをフェッチするため
-      security-events: write # github/codeql-action/upload-sarifがSARIF結果をアップロードするため
-      actions: read # プライベートリポジトリの場合のみ、github/codeql-action/upload-sarifがアクションの実行状況を取得するため
-    steps:
-      - name: Checkout the code
-        uses: actions/checkout@v4
+    check_pr:
+      needs: [run-lint, njsscan]
+      runs-on: ubuntu-latest
+      steps:
+        - name: コードをチェックアウト
+          uses: actions/checkout@v4
+        - name: GitHub CLIをインストール
+          run: |
+            sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
+            sudo apt-add-repository https://cli.github.com/packages
+            sudo apt update
+            sudo apt install gh -y
+        - name: 既存のプルリクエストをチェック
+          id: check_pr
+          run: |
+            gh pr list --head ${{ github.head_ref }} --json number --jq '.[0].number' > pr_number.txt
+            if [ -s pr_number.txt ]; then
+              echo "PR_EXISTS=true" >> $GITHUB_ENV
+              echo "::set-output name=pr_exists::true"
+            else
+              echo "PR_EXISTS=false" >> $GITHUB_ENV
+              echo "::set-output name=pr_exists::false"
+            fi
 
-      - name: nodejsscan scan
-        id: njsscan
-        uses: ajinabraham/njsscan-action@7237412fdd36af517e2745077cedbf9d6900d711
-        with:
-          args: '. --sarif --output results.sarif || true'
-
-      - name: Upload njsscan report
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: results.sarif
-
-  create-pull-request:
-    needs: [run-lint, njsscan]
-    runs-on: ubuntu-latest
-    steps:
-      - name: コードをチェックアウト
-        uses: actions/checkout@v4
-
-      - name: GitHub CLIをインストール
-        run: |
-          sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
-          sudo apt-add-repository https://cli.github.com/packages
-          sudo apt update
-          sudo apt install gh -y
-
-      - name: 既存のプルリクエストをチェック
-        id: check_pr
-        run: |
-          gh pr list --head ${{ github.head_ref }} --json number --jq '.[0].number' > pr_number.txt
-          if [ -s pr_number.txt ]; then
-            echo "PR_EXISTS=true" >> $GITHUB_ENV
-          else
-            echo "PR_EXISTS=false" >> $GITHUB_ENV
-          fi
-
-      - name: プルリクエストを作成
-        if: env.PR_EXISTS == 'false'
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          title: "Automated PR: Lint and NJSSCAN results"
-          body: |
-            This PR is automatically generated by the CI workflow.
-            - Linting and NJSSCAN checks have passed.
-          base: main
-          branch: ${{ github.head_ref }}
+    create-pull-request:
+      needs: [run-lint, njsscan, check_pr]
+      runs-on: ubuntu-latest
+      steps:
+        - name: コードをチェックアウト
+          uses: actions/checkout@v4
+        - name: プルリクエストを作成
+          if: needs.check_pr.outputs.pr_exists == 'false'
+          uses: peter-evans/create-pull-request@v5
+          with:
+            token: ${{ secrets.GITHUB_TOKEN }}
+            title: "Automated PR: Lint and NJSSCAN results"
+            body: |
+              This PR is automatically generated by the CI workflow.
+              - Linting and NJSSCAN checks have passed.
+            base: main
+            branch: ${{ github.head_ref }}
