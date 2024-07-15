@@ -60,10 +60,28 @@ jobs:
     needs: [run-lint, njsscan]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: コードをチェックアウト
         uses: actions/checkout@v4
 
-      - name: Create Pull Request
+      - name: GitHub CLIをインストール
+        run: |
+          sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
+          sudo apt-add-repository https://cli.github.com/packages
+          sudo apt update
+          sudo apt install gh -y
+
+      - name: 既存のプルリクエストをチェック
+        id: check_pr
+        run: |
+          gh pr list --head ${{ github.head_ref }} --json number --jq '.[0].number' > pr_number.txt
+          if [ -s pr_number.txt ]; then
+            echo "PR_EXISTS=true" >> $GITHUB_ENV
+          else
+            echo "PR_EXISTS=false" >> $GITHUB_ENV
+          fi
+
+      - name: プルリクエストを作成
+        if: env.PR_EXISTS == 'false'
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
