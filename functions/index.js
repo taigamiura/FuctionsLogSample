@@ -7,8 +7,7 @@ exports.helloWorld = onRequest({
   sampleFunc(request, response)
 })
 
-const sampleFunc = (request, response)=> {
-
+const sampleFunc = (request, response) => {
   const logHandler = new LogHandler(request)
   let statusCode = 200
   let message
@@ -33,5 +32,4 @@ const sampleFunc = (request, response)=> {
     logHandler.log(statusCode, message)
     response.status(statusCode).send(message)
   }
-
 }
